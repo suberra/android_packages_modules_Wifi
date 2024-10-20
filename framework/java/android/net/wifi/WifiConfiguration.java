@@ -1884,7 +1884,8 @@ public class WifiConfiguration implements Parcelable {
             RANDOMIZATION_NONE,
             RANDOMIZATION_PERSISTENT,
             RANDOMIZATION_NON_PERSISTENT,
-            RANDOMIZATION_AUTO})
+            RANDOMIZATION_AUTO,
+            RANDOMIZATION_ALWAYS})
     public @interface MacRandomizationSetting {}
 
     /**
@@ -1909,15 +1910,21 @@ public class WifiConfiguration implements Parcelable {
     public static final int RANDOMIZATION_AUTO = 3;
 
     /**
+     * Generate a randomize MAC always
+     */
+    public static final int RANDOMIZATION_ALWAYS = 100;
+
+    /**
      * Level of MAC randomization for this network.
      * One of {@link #RANDOMIZATION_NONE}, {@link #RANDOMIZATION_AUTO},
      * {@link #RANDOMIZATION_PERSISTENT} or {@link #RANDOMIZATION_NON_PERSISTENT}.
-     * By default this field is set to {@link #RANDOMIZATION_AUTO}.
+     * {@link #RANDOMIZATION_PERSISTENT} or {@link #RANDOMIZATION_NON_PERSISTENT} or RANDOMIZATION_ALWAYS.
+     * By default this field is set to RANDOMIZATION_ALWAYS in GrapheneOS.
      * @hide
      */
     @SystemApi
     @MacRandomizationSetting
-    public int macRandomizationSetting = RANDOMIZATION_AUTO;
+    public int macRandomizationSetting = RANDOMIZATION_ALWAYS;
 
     /**
      * Set the MAC randomization setting for this network.
@@ -2006,7 +2013,7 @@ public class WifiConfiguration implements Parcelable {
         mRandomizedMacAddress = mac;
     }
 
-    private boolean mIsSendDhcpHostnameEnabled = true;
+    private boolean mIsSendDhcpHostnameEnabled;
 
     /**
      * Set whether to send the hostname of the device to this network's DHCP server.
@@ -3410,6 +3417,13 @@ public class WifiConfiguration implements Parcelable {
         mIpProvisioningTimedOut = false;
         mVendorData = Collections.emptyList();
         mIsAllowedToUpdateByOtherUsers = true;
+
+        if (android.app.compat.gms.GmsCompat.isAndroidAuto()) {
+            // Per-connection MAC randomization doesn't work with some cars, see
+            // https://github.com/GrapheneOS/os-issue-tracker/issues/4139
+            macRandomizationSetting = RANDOMIZATION_PERSISTENT;
+            mIsSendDhcpHostnameEnabled = true;
+        }
         mCreatorUserId = -2; // Same as UserHandle.USER_CURRENT
     }
 
